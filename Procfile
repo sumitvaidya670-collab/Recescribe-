@@ -1,1 +1,0 @@
-web: gunicorn aapp:app
